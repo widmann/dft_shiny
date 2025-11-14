@@ -162,7 +162,7 @@ server <- function(input, output) {
       scale_color_manual(values = okabe[c(2, 3, 1)]) +
       geom_point() +
       facet_grid(rows = vars(Response), scales="free_y") +
-      guides(color = FALSE) +
+      guides(color = "none") +
       theme(axis.title.y=element_blank(), legend.title=element_blank(), legend.position = "bottom")
   })
   
@@ -201,6 +201,7 @@ server <- function(input, output) {
       geom_point() +
       ylim(min(c(dat_weighted$Amplitude, dat_weighted$Difference)), max(c(dat_weighted$Amplitude, dat_weighted$Difference)))
   })
+
 }
 
 shinyApp(ui = ui, server = server)
