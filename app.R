@@ -1,4 +1,4 @@
-# dft_shiny.R - A Shiny App to illustrate DFT and demonstrate potential effects of spectral filtering
+# dft_shiny.R - A Shiny app to illustrate DFT and demonstrate potential effects of spectral filtering
 # Copyright (c) 2025 Andreas Widmann, University of Leipzig
 # Author: Andreas Widmann, widmann@uni-leipzig.de
 
@@ -9,13 +9,17 @@ library(tidyr)
 library(dplyr)
 
 # Potentially interesting signals:
-# gausswin(20,6)'
-# 0.0000, 0.0000, 0.0000, 0.0002, 0.0024, 0.0176, 0.0869, 0.2875, 0.6384, 0.9514, 0.9514, 0.6384, 0.2875, 0.0869, 0.0176, 0.0024, 0.0002, 0.0000, 0.0000, 0.0000
-# fir_filterdcpadded(firws(50, 0.5, 'high'), 1, randn(1,20)')'
-# 0.3851, -0.3447, -0.3281, 1.0845, -1.1488, 0.4373, 0.3982, -0.6941, 0.4223, -0.0680, -0.0273, 0.0881, -0.5255, 1.1685, -1.2634, 0.4673, 0.6034, -1.0597, 0.7464, -0.2347
-# gausswin(20,6)' + fir_filterdcpadded(firws(50, 0.5, 'high'), 1, randn(1,20)')'
-# 0.5117, -0.5396, 0.4371, -0.5070, 0.5001, -0.2053, 0.2613, -0.2892, 1.2650, 1.1429, 0.1581, 0.6580, 1.5769, -1.3640, 0.6151, -0.3489, 1.1182, -1.5572, 0.8954, -0.0129
-# 1,1,1,1,1,1,1,1,1,1,1
+# Unit step
+# Signal: 0,0,0,0,0,1,1,1,1,1
+# Weights: 1,1,1,1,1,1 vs. 1,1,1,1,1,0 vs. 0,0,1,1,1,1
+# 
+# Gaussian plus noise (MATLAB: gausswin(20,6)' + fir_filterdcpadded(firws(50, 0.5, 'high'), 1, randn(1,20)')’)
+# Signal: 0.5117, -0.5396, 0.4371, -0.5070, 0.5001, -0.2053, 0.2613, -0.2892, 1.2650, 1.1429, 0.1581, 0.6580, 1.5769, -1.3640, 0.6151, -0.3489, 1.1182, -1.5572, 0.8954, -0.0129
+# 1,1,1,1,1,1,1,1,1,1,1 vs. 1,1,1,1,1,0,0,0,0,0,0
+# 
+# Gaussian (MATLAB: gausswin(20,6)’)
+# Signal: 0.0000, 0.0000, 0.0000, 0.0002, 0.0024, 0.0176, 0.0869, 0.2875, 0.6384, 0.9514, 0.9514, 0.6384, 0.2875, 0.0869, 0.0176, 0.0024, 0.0002, 0.0000, 0.0000, 0.0000
+# Weights: 1,1,1,1,1,1,1,1,1,1,1 vs. 0,0,1,1,1,1,1,1,1,1,1 vs. 1,1,1,0,0,0,0,0,0,0,0
 
 # https://jfly.uni-koeln.de/color/
 okabe<- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -42,7 +46,7 @@ ui <- page_sidebar(
     card(card_header("Time domain: Synthesized data"), plotOutput("plot_synth")),
     card(card_header("Time domain: Raw - filtered data"), plotOutput("plot_diff")),
 
-    col_widths = c(6, 6, 4, 8, 6, 6),
+    col_widths = c(6, 6, 5, 7, 6, 6),
     row_heights = c(1.5, 3, 1.5)
   )
   
@@ -142,24 +146,24 @@ server <- function(input, output) {
     my_fd <- data.frame(Frequency = val()$f,
                         Rectangular_real_raw = Re(val()$z),
                         Rectangular_imag_raw = -Im(val()$z),
-                        Magnitude_abs_raw = abs(val()$z),
-                        Phase_abs_raw = atan2(Im(val()$z), Re(val()$z)),
+                        Magnitude_mag_raw = abs(val()$z),
+                        Phase_pha_raw = atan2(Im(val()$z), Re(val()$z)),
                         Rectangular_real_filtered = Re(val()$z_weighted),
                         Rectangular_imag_filtered = -Im(val()$z_weighted),
-                        Magnitude_abs_filtered = abs(val()$z_weighted),
-                        Phase_abs_filtered = atan2(Im(val()$z_weighted), Re(val()$z_weighted))
+                        Magnitude_mag_filtered = abs(val()$z_weighted),
+                        Phase_pha_filtered = atan2(Im(val()$z_weighted), Re(val()$z_weighted))
     )
     my_fd <- my_fd %>%
       pivot_longer(-Frequency, values_to = "value", names_to = c("Response", "type", "filtered"), names_sep = "_")
     
     my_fd$Response <- factor(my_fd$Response, levels = c("Rectangular", "Magnitude", "Phase"))
-    my_fd$type <- factor(my_fd$type, levels = c("real", "imag", "abs"))
+    my_fd$type <- factor(my_fd$type, levels = c("real", "imag", "mag", "pha"))
     my_fd$filtered <- factor(my_fd$filtered, levels = c("raw", "filtered"))
     # print(my_fd, n = 30)
 
     ggplot(my_fd, aes(x = Frequency, y = value, color = type, linetype = filtered)) +
       geom_line() +
-      scale_color_manual(values = okabe[c(2, 3, 1)]) +
+      scale_color_manual(values = okabe[c(2, 3, 4, 8)]) +
       geom_point() +
       facet_grid(rows = vars(Response), scales="free_y") +
       guides(color = "none") +
